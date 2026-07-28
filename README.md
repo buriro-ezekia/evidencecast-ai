@@ -139,9 +139,47 @@ pytest -q
 streamlit run app.py --server.address 0.0.0.0 --server.port 8501
 ```
 
-Open **Narration and audio** from the Streamlit sidebar after creating the Day 3 storyboard. When the Streamlit session has expired, the page can restore a previously downloaded approved-only storyboard JSON.
+Open **Narration and audio** from the Streamlit sidebar after creating the Day 3 storyboard. When the Streamlit session has expired, the B2 recovery pages restore the approved storyboard and narration review.
 
 See [`docs/day-04-runbook.md`](docs/day-04-runbook.md).
+
+## Day 5 final media and evaluation
+
+Day 5 completes the local delivery and evaluation layer. It can operate with generated provider assets when available or with manually reviewed scene images and narration clips while provider credits remain unavailable.
+
+### Day 5 capabilities
+
+- evidence consistency checks across storyboard, narration, evidence-card links and source SHA-256;
+- optional validation of completed image and audio summaries;
+- required asset SHA-256 and `manifest_verified` checks;
+- SRT and WebVTT subtitle generation timed from actual narration clips;
+- captioned MP4 composition with FFmpeg;
+- 16:9 thumbnail export;
+- three-card infographic export from approved storyboard claims only;
+- final input and output persistence in B2;
+- B2 metadata SHA-256 and object-size verification;
+- final assembly manifest;
+- image or audio scene-level regeneration;
+- parent-child run relationships;
+- immutable regeneration request, lineage, attempt and summary records;
+- bounded exponential retries for transient failures; and
+- immediate stop for invalid payloads, authentication failures, content-policy refusals and insufficient credits.
+
+### Day 5 quick start
+
+```bash
+git fetch origin
+git switch feat/day-05-final-media-evaluation
+git pull origin feat/day-05-final-media-evaluation
+pip install -r requirements.txt
+sudo apt-get update && sudo apt-get install -y ffmpeg
+pytest -q
+streamlit run app.py --server.address 0.0.0.0 --server.port 8501
+```
+
+Open **Final media and evaluation** from the Streamlit sidebar. The page can restore the approved storyboard and narration directly from B2.
+
+See [`docs/day-05-runbook.md`](docs/day-05-runbook.md).
 
 ## Security
 
@@ -201,11 +239,32 @@ The B2 key should remain restricted to the EvidenceCast bucket. The application 
 - [x] Narration plan and review persistence implemented
 - [x] Three-segment Genblaze audio orchestration implemented
 - [x] Audio progress and failure persistence implemented
+- [x] Correct GMI TTS `text` payload and English voice mapping implemented
+- [x] Three narration segments approved and confirmed in B2
+- [x] Corrected request reached the GMI credit boundary
+- [x] Controlled GMI credit failure persisted correctly
 - [x] Day 4 automated tests added
-- [ ] Day 4 tests executed in Codespaces
-- [ ] Three narration segments approved and confirmed in B2
+- [ ] Day 4 tests executed in Codespaces after the latest correction
 - [ ] Three live audio clips generated
 - [ ] Three verified audio manifests confirmed in B2
+
+### Day 5
+
+- [x] Evidence consistency evaluator implemented
+- [x] Generated-asset manifest-record checks implemented
+- [x] SRT and WebVTT subtitle generation implemented
+- [x] FFmpeg captioned MP4 assembly implemented
+- [x] Thumbnail export implemented
+- [x] Infographic export implemented
+- [x] Final delivery manifest and B2 integrity verification implemented
+- [x] Scene-level image and audio regeneration implemented
+- [x] Parent-child run lineage implemented
+- [x] Failure classification and bounded retry handling implemented
+- [x] Day 5 automated tests added
+- [ ] Day 5 tests executed in Codespaces
+- [ ] Captioned MP4 assembled from three approved scene assets
+- [ ] Final delivery package confirmed and verified in B2
+- [ ] Scene-level regeneration lineage validated live
 
 ## Licence
 
