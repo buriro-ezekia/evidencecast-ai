@@ -3,3 +3,8 @@ genblaze-gmicloud
 genblaze-openai
 genblaze-s3
 python-dotenv
+boto3
+pandas
+pypdf
+streamlit
+pytest
