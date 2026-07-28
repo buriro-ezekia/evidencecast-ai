@@ -1,0 +1,4 @@
+genblaze-core
+genblaze-gmicloud
+genblaze-s3
+python-dotenv
