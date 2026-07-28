@@ -20,6 +20,11 @@ REQUIRED_S3_CAPABILITIES = {
     "readFiles",
     "writeFiles",
 }
+MASTER_KEY_INDICATOR_CAPABILITIES = {
+    "listKeys",
+    "writeKeys",
+    "deleteKeys",
+}
 
 
 def require_value(name: str) -> str:
@@ -37,7 +42,7 @@ def authorise_account(key_id: str, application_key: str) -> dict[str, Any]:
         headers={
             "Authorization": f"Basic {basic_auth}",
             "Accept": "application/json",
-            "User-Agent": "evidencecast-ai-b2-diagnostic/1.0",
+            "User-Agent": "evidencecast-ai-b2-diagnostic/1.1",
         },
         method="GET",
     )
@@ -51,7 +56,7 @@ def authorise_account(key_id: str, application_key: str) -> dict[str, Any]:
             raise RuntimeError(
                 "Backblaze rejected B2_KEY_ID/B2_APP_KEY. The pair is invalid, expired, "
                 "revoked, copied incorrectly, or does not belong together. Create a new "
-                "application key and replace both values in .env."
+                "standard application key and replace both values in .env."
             ) from exc
         raise RuntimeError(
             f"Backblaze authorisation failed with HTTP {exc.code}: {response_text}"
@@ -95,6 +100,15 @@ def main() -> None:
     detected_region = region_from_s3_url(s3_api_url)
 
     problems: list[str] = []
+
+    master_indicators = sorted(MASTER_KEY_INDICATOR_CAPABILITIES & capabilities)
+    if master_indicators:
+        problems.append(
+            "The credentials appear to be the master application key because they include "
+            "account-level key-management capabilities: " + ", ".join(master_indicators) + ". "
+            "Backblaze does not support master application keys in the S3-compatible API."
+        )
+
     missing_capabilities = sorted(REQUIRED_S3_CAPABILITIES - capabilities)
     if missing_capabilities:
         problems.append(
@@ -133,15 +147,20 @@ def main() -> None:
     for capability in sorted(REQUIRED_S3_CAPABILITIES):
         status = "present" if capability in capabilities else "MISSING"
         print(f"  - {capability}: {status}")
+    print(
+        "Master-key indicators:         "
+        + (", ".join(master_indicators) if master_indicators else "none")
+    )
 
     if problems:
         print("\nConfiguration problems detected:", file=sys.stderr)
         for problem in problems:
             print(f"  - {problem}", file=sys.stderr)
         print(
-            "\nCreate a replacement bucket-restricted application key with Read and "
-            "Write access, Allow List All Bucket Names enabled, and no file-name prefix. "
-            "Then replace both B2_KEY_ID and B2_APP_KEY in .env.",
+            "\nCreate a new standard bucket-restricted application key under 'Your "
+            "Application Keys' with Read and Write access, Allow List All Bucket Names "
+            "enabled, and no file-name prefix. Copy the new keyID and applicationKey "
+            "from the same result panel, then replace both values in .env.",
             file=sys.stderr,
         )
         raise SystemExit(1)
