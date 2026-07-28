@@ -32,9 +32,9 @@ The first implementation generates one EvidenceCast concept image through Genbla
 
 - Orchestration: Genblaze
 - Preferred media provider: GMI Cloud
-- Default GMI Cloud model: `seedream-5.0-lite`
-- Optional fallback provider: OpenAI API
-- Default OpenAI model: `gpt-image-1`
+- Default GMI Cloud image model: `seedream-5.0-lite`
+- Optional image fallback provider: OpenAI API
+- Default OpenAI image model: `gpt-image-1`
 - Storage: private Backblaze B2 bucket through `genblaze-s3`
 - Storage layout: Genblaze hierarchical key strategy
 
@@ -60,7 +60,7 @@ Enter the B2 and provider credentials in the local `.env` file, then run:
 python scripts/day01_generate_image.py
 ```
 
-A successful run prints the image location, image SHA-256, manifest location, canonical manifest hash and `Manifest verified: True`. It also creates a non-secret local summary at `artifacts/day01-result.json`.
+A successful run prints the image location, image SHA-256, manifest location, canonical manifest hash and `Manifest verified: True`.
 
 A GMI Cloud HTTP 402 response means authentication succeeded but the organisation has insufficient credits. The optional OpenAI fallback requires separately funded OpenAI API billing:
 
@@ -87,23 +87,11 @@ The evidence workflow is implemented as a Streamlit interface. It accepts PDF, M
 - reviewed evidence-card JSON stored in B2; and
 - downloadable review JSON for inspection.
 
-### Day 2 quick start
-
-```bash
-git fetch origin
-git switch feat/day-02-evidence-workflow
-pip install -r requirements.txt
-pytest -q
-streamlit run app.py --server.address 0.0.0.0 --server.port 8501
-```
-
-In GitHub Codespaces, open forwarded port `8501` and keep its visibility private while using private research documents and credentials.
-
 See [`docs/day-02-runbook.md`](docs/day-02-runbook.md).
 
 ## Day 3 storyboard and image generation
 
-Day 3 adds a second Streamlit page that creates a structured three-scene storyboard from approved evidence cards only. It stores the storyboard and prompts in B2, then runs each scene through Genblaze while streaming durable progress events.
+Day 3 creates a structured three-scene storyboard from approved evidence cards only. It stores the storyboard and prompts in B2, then runs each scene through Genblaze while streaming durable progress events.
 
 ### Day 3 capabilities
 
@@ -118,26 +106,48 @@ Day 3 adds a second Streamlit page that creates a structured three-scene storybo
 - partial-failure preservation; and
 - final completed or failed generation summary.
 
-### Day 3 quick start
+See [`docs/day-03-runbook.md`](docs/day-03-runbook.md).
+
+## Day 4 narration and audio generation
+
+Day 4 turns the approved-only storyboard into editable spoken narration. Every narration segment must be reviewed and approved before the application can submit three audio-generation jobs through Genblaze.
+
+### Day 4 capabilities
+
+- deterministic three-segment narration plan;
+- storyboard and evidence-card traceability for every segment;
+- editable spoken narration with locked evidence claims;
+- pending, approved and rejected review decisions;
+- explicit all-approved gate before TTS;
+- narration plan and review persistence in B2;
+- three GMI Cloud audio pipelines through Genblaze;
+- default audio model `minimax-tts-speech-2.6-turbo`;
+- immutable audio progress events and current-state record in B2;
+- per-segment request and result JSON;
+- audio SHA-256 and canonical provenance verification enforcement;
+- partial-failure preservation; and
+- final completed or failed audio summary.
+
+### Day 4 quick start
 
 ```bash
 git fetch origin
-git switch feat/day-03-storyboard-image-generation
-git pull origin feat/day-03-storyboard-image-generation
+git switch feat/day-04-narration-audio
+git pull origin feat/day-04-narration-audio
 pip install -r requirements.txt
 pytest -q
 streamlit run app.py --server.address 0.0.0.0 --server.port 8501
 ```
 
-On the main page, approve and save at least three cards. Then open **Storyboard and images** from the Streamlit sidebar. Storyboard creation works without provider credit; live image generation requires a configured provider with usable access or billing.
+Open **Narration and audio** from the Streamlit sidebar after creating the Day 3 storyboard. When the Streamlit session has expired, the page can restore a previously downloaded approved-only storyboard JSON.
 
-See [`docs/day-03-runbook.md`](docs/day-03-runbook.md).
+See [`docs/day-04-runbook.md`](docs/day-04-runbook.md).
 
 ## Security
 
 Do not commit API keys, B2 application keys, bucket credentials or populated `.env` files. Use `.env.example` only as a template and store real credentials in a local `.env` file or deployment secret manager.
 
-The existing B2 key should remain restricted to the EvidenceCast bucket. The application does not require account-wide B2 access.
+The B2 key should remain restricted to the EvidenceCast bucket. The application does not require account-wide B2 access.
 
 ## Delivery status
 
@@ -177,11 +187,25 @@ The existing B2 key should remain restricted to the EvidenceCast bucket. The app
 - [x] Three-scene Genblaze orchestration implemented
 - [x] Progress streaming and B2 progress records implemented
 - [x] Partial-failure preservation implemented
-- [x] Day 3 unit tests added
-- [ ] Day 3 tests executed in Codespaces
-- [ ] Storyboard and prompt records confirmed in B2
+- [x] Day 3 automated tests passed
+- [x] Storyboard and prompt records confirmed in B2
+- [x] Controlled GMI credit failure persisted correctly
 - [ ] Three live scene images generated
-- [ ] Three verified manifests confirmed in B2
+- [ ] Three verified image manifests confirmed in B2
+
+### Day 4
+
+- [x] Three-segment narration-plan builder implemented
+- [x] Human narration review interface implemented
+- [x] All-approved audio gate implemented
+- [x] Narration plan and review persistence implemented
+- [x] Three-segment Genblaze audio orchestration implemented
+- [x] Audio progress and failure persistence implemented
+- [x] Day 4 automated tests added
+- [ ] Day 4 tests executed in Codespaces
+- [ ] Three narration segments approved and confirmed in B2
+- [ ] Three live audio clips generated
+- [ ] Three verified audio manifests confirmed in B2
 
 ## Licence
 
