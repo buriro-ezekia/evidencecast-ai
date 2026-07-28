@@ -102,16 +102,31 @@ def require_environment() -> dict[str, str]:
     return values
 
 
-def create_storage(bucket_name: str) -> ObjectStorageSink:
-    backend_options: dict[str, Any] = {"auto_lifecycle": False}
+def create_storage(environment: dict[str, str]) -> ObjectStorageSink:
     region = os.getenv("B2_REGION", "").strip()
+
+    backend_options: dict[str, Any] = {
+        "auto_lifecycle": False,
+        "key_id": environment["B2_KEY_ID"],
+        "app_key": environment["B2_APP_KEY"],
+    }
     if region:
         backend_options["region"] = region
 
     try:
-        backend = S3StorageBackend.for_backblaze(bucket_name, **backend_options)
+        backend = S3StorageBackend.for_backblaze(
+            environment["B2_BUCKET"],
+            **backend_options,
+        )
     except Exception as exc:
         error_text = str(exc)
+        if "InvalidAccessKeyId" in error_text or "Malformed Access Key Id" in error_text:
+            raise RuntimeError(
+                "Backblaze rejected the S3 access-key identifier as malformed. The script "
+                "has already removed surrounding whitespace, so confirm that B2_KEY_ID is "
+                "the application key ID shown alongside the same B2_APP_KEY—not the key "
+                "name, account ID, bucket ID or application-key secret."
+            ) from exc
         if "403" in error_text or "Forbidden" in error_text:
             raise RuntimeError(
                 "Backblaze rejected the bucket preflight with HTTP 403. Confirm that "
@@ -143,7 +158,7 @@ def main() -> None:
     load_dotenv(dotenv_path=repository_root / ".env", override=True)
     args = parse_arguments()
     environment = require_environment()
-    storage = create_storage(environment["B2_BUCKET"])
+    storage = create_storage(environment)
 
     result = (
         Pipeline(
