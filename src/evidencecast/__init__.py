@@ -1,3 +1,3 @@
-# Exposes the EvidenceCast evidence-ingestion and review components.
+# Exposes the EvidenceCast evidence, storyboard, storage and media-generation components.
 
-__all__ = ["cards", "extraction", "storage"]
+__all__ = ["cards", "extraction", "media", "storage", "storyboard"]
