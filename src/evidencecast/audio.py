@@ -20,6 +20,34 @@ class AudioGenerationConfigurationError(RuntimeError):
 
 
 DEFAULT_AUDIO_MODEL = "minimax-tts-speech-2.6-turbo"
+DEFAULT_TTS_VOICES = {
+    "minimax-tts": "presenter_female",
+    "elevenlabs-tts": "21m00Tcm4TlvDq8ikWAM",
+    "inworld-tts": "ashley",
+}
+
+
+def _normalise_gmi_tts_payload(payload: dict[str, Any]) -> dict[str, Any]:
+    """Map Genblaze's canonical ``prompt`` field to GMI's required ``text`` field."""
+
+    normalised = dict(payload)
+    nested_payload = normalised.get("payload")
+    if isinstance(nested_payload, dict):
+        nested = dict(nested_payload)
+        if "text" not in nested and "prompt" in nested:
+            nested["text"] = nested.pop("prompt")
+        normalised["payload"] = nested
+    elif "text" not in normalised and "prompt" in normalised:
+        normalised["text"] = normalised.pop("prompt")
+    return normalised
+
+
+class EvidenceCastGMICloudAudioProvider(GMICloudAudioProvider):
+    """GMI audio provider with a narrow compatibility fix for TTS payloads."""
+
+    def prepare_payload(self, step: Any) -> dict[str, Any]:
+        payload = super().prepare_payload(step)
+        return _normalise_gmi_tts_payload(payload)
 
 
 @dataclass(frozen=True)
@@ -57,6 +85,17 @@ def _require_gmi_key() -> None:
         )
 
 
+def _default_voice_for_model(model: str) -> str:
+    normalised = model.strip().lower()
+    for prefix, voice_id in DEFAULT_TTS_VOICES.items():
+        if normalised.startswith(prefix):
+            return voice_id
+    raise AudioGenerationConfigurationError(
+        f"Unsupported narration model '{model}'. Use a GMI text-to-speech model beginning with "
+        "minimax-tts, elevenlabs-tts or inworld-tts."
+    )
+
+
 def _failure_message(result: Any) -> str:
     error_summary = result.error_summary() or "Unknown provider failure."
     normalised = error_summary.lower()
@@ -74,12 +113,13 @@ def _generate_segment_audio(
     segment: dict[str, Any],
     narration_id: str,
     provider_model: str,
+    voice_id: str,
     storage: ObjectStorageSink,
     timeout: int,
 ) -> dict[str, Any]:
     scene_number = int(segment["scene_number"])
     reviewed_text = str(segment["reviewed_text"]).strip()
-    provider = GMICloudAudioProvider()
+    provider = EvidenceCastGMICloudAudioProvider()
 
     result = (
         Pipeline(
@@ -90,6 +130,9 @@ def _generate_segment_audio(
             provider,
             model=provider_model,
             prompt=reviewed_text,
+            voice_id=voice_id,
+            language="en",
+            output_format="mp3",
             modality=Modality.AUDIO,
             metadata={
                 "narration_id": narration_id,
@@ -98,6 +141,7 @@ def _generate_segment_audio(
                 "evidence_card_ids": list(segment["evidence_card_ids"]),
                 "language": segment.get("language", "English (UK)"),
                 "voice_style": segment.get("voice_style", "clear, calm and educational"),
+                "voice_id": voice_id,
                 "pronunciation_notes": segment.get("pronunciation_notes", ""),
             },
         )
@@ -133,6 +177,7 @@ def _generate_segment_audio(
         "reviewed_text": reviewed_text,
         "provider": "gmicloud",
         "model": provider_model,
+        "voice_id": voice_id,
         "run_id": result.run.run_id,
         "step_status": str(step.status),
         "asset_url": asset.url,
@@ -162,6 +207,7 @@ def stream_narration_audio_generation(
     storyboard_id = str(narration_plan["storyboard_id"])
     narration_id = str(narration_plan["narration_id"])
     provider_model = model.strip() if model and model.strip() else DEFAULT_AUDIO_MODEL
+    voice_id = _default_voice_for_model(provider_model)
     audio_run_id = f"AUD-{datetime.now(UTC).strftime('%Y%m%dT%H%M%SZ')}-{uuid4().hex[:8]}"
     storage = _create_genblaze_storage(store.settings)
     sequence = 0
@@ -212,6 +258,7 @@ def stream_narration_audio_generation(
         "source_sha256": source_sha256,
         "provider": "gmicloud",
         "model": provider_model,
+        "voice_id": voice_id,
         "timeout": timeout,
         "segment_count": 3,
         "language": narration_plan.get("language", "English (UK)"),
@@ -247,6 +294,7 @@ def stream_narration_audio_generation(
             "pronunciation_notes": segment.get("pronunciation_notes", ""),
             "provider": "gmicloud",
             "model": provider_model,
+            "voice_id": voice_id,
             "created_at": datetime.now(UTC).isoformat(),
         }
         segment_request_object = store.store_audio_segment_request(
@@ -276,6 +324,7 @@ def stream_narration_audio_generation(
                 segment=enriched_segment,
                 narration_id=narration_id,
                 provider_model=provider_model,
+                voice_id=voice_id,
                 storage=storage,
                 timeout=timeout,
             )
@@ -322,6 +371,7 @@ def stream_narration_audio_generation(
                 "status": "failed",
                 "provider": "gmicloud",
                 "model": provider_model,
+                "voice_id": voice_id,
                 "completed_segments": segment_results,
                 "failed_segment": failure,
                 "saved_at": datetime.now(UTC).isoformat(),
@@ -355,6 +405,7 @@ def stream_narration_audio_generation(
         "status": "completed",
         "provider": "gmicloud",
         "model": provider_model,
+        "voice_id": voice_id,
         "segment_count": len(segment_results),
         "segments": segment_results,
         "saved_at": datetime.now(UTC).isoformat(),
