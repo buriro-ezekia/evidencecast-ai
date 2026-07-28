@@ -1,9 +1,12 @@
 # Extends EvidenceCast B2 storage with narration plans, audio intermediates and progress records.
 from __future__ import annotations
 
+import json
 import re
 from datetime import UTC, datetime
 from typing import Any
+
+from botocore.exceptions import BotoCoreError, ClientError
 
 from .storage import B2EvidenceStore, StorageOperationError, StoredObject
 
@@ -17,6 +20,35 @@ class B2AudioStore(B2EvidenceStore):
         if not safe_value:
             raise StorageOperationError(f"{label} cannot be empty.")
         return safe_value
+
+    def load_json_from_b2_uri(self, uri: str) -> dict[str, Any]:
+        """Load a JSON object from this store's configured bucket using a strict B2 URI."""
+
+        candidate = uri.strip()
+        match = re.fullmatch(r"b2://([^/]+)/(.+)", candidate)
+        if not match:
+            raise StorageOperationError(
+                "Enter a complete B2 URI in the form b2://bucket-name/path/to/file.json."
+            )
+        bucket, key = match.groups()
+        if bucket != self.settings.bucket:
+            raise StorageOperationError(
+                f"The URI points to bucket '{bucket}', but this application is configured for "
+                f"'{self.settings.bucket}'."
+            )
+        if not key.lower().endswith(".json"):
+            raise StorageOperationError("The selected B2 object must be a JSON file.")
+
+        try:
+            response = self.client.get_object(Bucket=bucket, Key=key)
+            raw = response["Body"].read()
+            value = json.loads(raw.decode("utf-8"))
+        except (BotoCoreError, ClientError, UnicodeDecodeError, json.JSONDecodeError, KeyError) as exc:
+            raise StorageOperationError(f"Could not load {candidate}: {exc}") from exc
+
+        if not isinstance(value, dict):
+            raise StorageOperationError("The B2 JSON object must contain a top-level JSON object.")
+        return value
 
     def narration_root(
         self,
