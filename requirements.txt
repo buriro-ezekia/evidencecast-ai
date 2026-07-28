@@ -1,4 +1,5 @@
 genblaze-core
 genblaze-gmicloud
+genblaze-openai
 genblaze-s3
 python-dotenv
