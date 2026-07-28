@@ -140,7 +140,7 @@ def write_summary(path: str, summary: dict[str, Any]) -> Path:
 
 def main() -> None:
     repository_root = Path(__file__).resolve().parents[1]
-    load_dotenv(dotenv_path=repository_root / ".env")
+    load_dotenv(dotenv_path=repository_root / ".env", override=True)
     args = parse_arguments()
     environment = require_environment()
     storage = create_storage(environment["B2_BUCKET"])
