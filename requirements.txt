@@ -7,4 +7,5 @@ boto3
 pandas
 pypdf
 streamlit
+Pillow
 pytest
