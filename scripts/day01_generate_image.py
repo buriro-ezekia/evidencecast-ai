@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 from pathlib import Path
 from typing import Any
 
@@ -26,6 +27,9 @@ REQUIRED_ENVIRONMENT_VARIABLES = (
     "B2_BUCKET",
     "GMI_API_KEY",
 )
+
+B2_BUCKET_ID_PATTERN = re.compile(r"^[0-9a-fA-F]{24}$")
+B2_S3_BUCKET_NAME_PATTERN = re.compile(r"^[a-z0-9](?:[a-z0-9.-]{1,61}[a-z0-9])$")
 
 
 def parse_arguments() -> argparse.Namespace:
@@ -64,8 +68,29 @@ def parse_arguments() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def validate_bucket_name(bucket_name: str) -> None:
+    if B2_BUCKET_ID_PATTERN.fullmatch(bucket_name):
+        raise RuntimeError(
+            "B2_BUCKET contains a 24-character Backblaze bucket ID. Genblaze's "
+            "S3-compatible backend requires the bucket's unique name instead. Open "
+            "Backblaze B2 > Buckets, copy the value under 'Bucket Name', and place "
+            "that value in B2_BUCKET."
+        )
+
+    if not B2_S3_BUCKET_NAME_PATTERN.fullmatch(bucket_name):
+        raise RuntimeError(
+            "B2_BUCKET is not a valid S3-compatible bucket name. Use the exact "
+            "Backblaze bucket name, preferably lowercase letters, numbers and hyphens, "
+            "not the bucket ID."
+        )
+
+
 def require_environment() -> dict[str, str]:
-    missing = [name for name in REQUIRED_ENVIRONMENT_VARIABLES if not os.getenv(name)]
+    values = {
+        name: os.getenv(name, "").strip()
+        for name in REQUIRED_ENVIRONMENT_VARIABLES
+    }
+    missing = [name for name, value in values.items() if not value]
     if missing:
         missing_text = ", ".join(missing)
         raise RuntimeError(
@@ -73,7 +98,8 @@ def require_environment() -> dict[str, str]:
             "Copy .env.example to .env and provide the values locally."
         )
 
-    return {name: os.environ[name] for name in REQUIRED_ENVIRONMENT_VARIABLES}
+    validate_bucket_name(values["B2_BUCKET"])
+    return values
 
 
 def create_storage(bucket_name: str) -> ObjectStorageSink:
@@ -82,7 +108,20 @@ def create_storage(bucket_name: str) -> ObjectStorageSink:
     if region:
         backend_options["region"] = region
 
-    backend = S3StorageBackend.for_backblaze(bucket_name, **backend_options)
+    try:
+        backend = S3StorageBackend.for_backblaze(bucket_name, **backend_options)
+    except Exception as exc:
+        error_text = str(exc)
+        if "403" in error_text or "Forbidden" in error_text:
+            raise RuntimeError(
+                "Backblaze rejected the bucket preflight with HTTP 403. Confirm that "
+                "B2_BUCKET is the exact bucket name, B2_REGION matches the bucket's S3 "
+                "endpoint, B2_KEY_ID/B2_APP_KEY belong to the same restricted key, and "
+                "the key has Read and Write access plus 'Allow List All Bucket Names' "
+                "enabled for S3-compatible SDK access."
+            ) from exc
+        raise
+
     return ObjectStorageSink(
         backend,
         key_strategy=KeyStrategy.HIERARCHICAL,
@@ -100,7 +139,8 @@ def write_summary(path: str, summary: dict[str, Any]) -> Path:
 
 
 def main() -> None:
-    load_dotenv()
+    repository_root = Path(__file__).resolve().parents[1]
+    load_dotenv(dotenv_path=repository_root / ".env")
     args = parse_arguments()
     environment = require_environment()
     storage = create_storage(environment["B2_BUCKET"])
