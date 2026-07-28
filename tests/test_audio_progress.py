@@ -7,6 +7,8 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 
+import pytest
+
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 SOURCE_ROOT = REPOSITORY_ROOT / "src"
 if str(SOURCE_ROOT) not in sys.path:
@@ -77,6 +79,7 @@ def _successful_segment(**kwargs: Any) -> dict[str, Any]:
         "reviewed_text": segment["reviewed_text"],
         "provider": "gmicloud",
         "model": kwargs["provider_model"],
+        "voice_id": kwargs["voice_id"],
         "run_id": f"run-{number}",
         "step_status": "succeeded",
         "asset_url": f"https://example.test/scene-{number}.mp3",
@@ -87,6 +90,36 @@ def _successful_segment(**kwargs: Any) -> dict[str, Any]:
         "manifest_verified": True,
         "completed_at": "2026-07-28T00:00:00Z",
     }
+
+
+def test_nested_gmi_payload_maps_prompt_to_text() -> None:
+    payload = {
+        "payload": {
+            "prompt": "Approved narration text.",
+            "voice_id": "presenter_female",
+        }
+    }
+
+    normalised = audio._normalise_gmi_tts_payload(payload)
+
+    assert normalised["payload"]["text"] == "Approved narration text."
+    assert "prompt" not in normalised["payload"]
+    assert normalised["payload"]["voice_id"] == "presenter_female"
+
+
+def test_flat_gmi_payload_maps_prompt_to_text() -> None:
+    normalised = audio._normalise_gmi_tts_payload({"prompt": "Narration"})
+
+    assert normalised == {"text": "Narration"}
+
+
+def test_default_minimax_voice_is_english_presenter() -> None:
+    assert audio._default_voice_for_model("minimax-tts-speech-2.6-turbo") == "presenter_female"
+
+
+def test_non_tts_model_is_rejected() -> None:
+    with pytest.raises(audio.AudioGenerationConfigurationError, match="Unsupported narration model"):
+        audio._default_voice_for_model("minimax-music-2.5")
 
 
 def test_audio_progress_persists_three_results(monkeypatch: Any) -> None:
@@ -110,6 +143,8 @@ def test_audio_progress_persists_three_results(monkeypatch: Any) -> None:
     assert len([name for name, _ in store.calls if name == "segment-result"]) == 3
     assert len([name for name, _ in store.calls if name == "progress-event"]) == len(events)
     assert len([name for name, _ in store.calls if name == "generation-summary"]) == 1
+    request = next(values for name, values in store.calls if name == "generation-request")
+    assert request["request"]["voice_id"] == "presenter_female"
 
 
 def test_audio_progress_records_partial_failure(monkeypatch: Any) -> None:
@@ -137,6 +172,7 @@ def test_audio_progress_records_partial_failure(monkeypatch: Any) -> None:
     summaries = [values for name, values in store.calls if name == "generation-summary"]
     assert len(summaries) == 1
     assert summaries[0]["summary"]["status"] == "failed"
+    assert summaries[0]["summary"]["voice_id"] == "presenter_female"
     assert len(summaries[0]["summary"]["completed_segments"]) == 1
 
 
