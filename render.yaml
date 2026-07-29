@@ -1,0 +1,42 @@
+# Deploys EvidenceCast as separate FastAPI and Streamlit web services on Render.
+services:
+  - type: web
+    name: evidencecast-api
+    runtime: docker
+    plan: free
+    region: frankfurt
+    dockerfilePath: ./Dockerfile.api
+    dockerContext: .
+    healthCheckPath: /healthz
+    envVars:
+      - key: EVIDENCECAST_FIXTURE_MODE
+        value: "1"
+      - key: EVIDENCECAST_ALLOWED_ORIGINS
+        value: "*"
+
+  - type: web
+    name: evidencecast-web
+    runtime: docker
+    plan: free
+    region: frankfurt
+    dockerfilePath: ./Dockerfile.web
+    dockerContext: .
+    healthCheckPath: /_stcore/health
+    envVars:
+      - key: EVIDENCECAST_FIXTURE_MODE
+        value: "1"
+      - key: EVIDENCECAST_API_URL
+        fromService:
+          type: web
+          name: evidencecast-api
+          property: hostport
+      - key: B2_KEY_ID
+        sync: false
+      - key: B2_APP_KEY
+        sync: false
+      - key: B2_BUCKET
+        sync: false
+      - key: B2_REGION
+        value: us-east-005
+      - key: B2_ENDPOINT
+        value: https://s3.us-east-005.backblazeb2.com
