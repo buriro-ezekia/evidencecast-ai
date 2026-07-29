@@ -10,5 +10,5 @@ streamlit
 Pillow
 fastapi
 uvicorn[standard]
-httpx
+httpx2
 pytest
