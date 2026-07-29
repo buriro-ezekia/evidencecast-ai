@@ -1,14 +1,24 @@
 # Tests the deployment backend health and provider-independent fixture endpoints.
+from __future__ import annotations
+
+from collections.abc import Iterator
+
+import pytest
 from fastapi.testclient import TestClient
 
 from backend.main import app
 from evidencecast.deployment import normalise_api_url
 
 
-client = TestClient(app)
+@pytest.fixture
+def client() -> Iterator[TestClient]:
+    """Create the ASGI test client inside each test lifecycle."""
+
+    with TestClient(app) as test_client:
+        yield test_client
 
 
-def test_health_and_readiness_endpoints() -> None:
+def test_health_and_readiness_endpoints(client: TestClient) -> None:
     health = client.get("/healthz")
     assert health.status_code == 200
     assert health.json()["status"] == "ok"
@@ -20,7 +30,7 @@ def test_health_and_readiness_endpoints() -> None:
     assert readiness.json()["fixture_count"] == 3
 
 
-def test_fixture_catalogue_and_detail_endpoints() -> None:
+def test_fixture_catalogue_and_detail_endpoints(client: TestClient) -> None:
     catalogue = client.get("/api/v1/fixtures")
     assert catalogue.status_code == 200
     payload = catalogue.json()
@@ -35,7 +45,7 @@ def test_fixture_catalogue_and_detail_endpoints() -> None:
         assert all(card["status"] == "approved" for card in workflow["review"]["cards"])
 
 
-def test_unknown_fixture_returns_404() -> None:
+def test_unknown_fixture_returns_404(client: TestClient) -> None:
     response = client.get("/api/v1/fixtures/does-not-exist")
     assert response.status_code == 404
     assert "Unknown fixture" in response.json()["detail"]
