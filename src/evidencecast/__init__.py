@@ -14,6 +14,7 @@ __all__ = [
     "media",
     "media_probe",
     "narration",
+    "nvidia_live",
     "regeneration",
     "storage",
     "storyboard",
