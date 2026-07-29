@@ -31,7 +31,7 @@ def _allowed_origins() -> list[str]:
 
 app = FastAPI(
     title="EvidenceCast API",
-    version="1.0.0",
+    version="1.1.0",
     description=(
         "Deployment health, capability and deterministic fixture endpoints for EvidenceCast AI. "
         "Provider and B2 credentials are never returned by this API."
@@ -78,6 +78,7 @@ def readiness() -> dict[str, Any]:
             and os.getenv("B2_BUCKET", "").strip()
         ),
         "gmi_configured": bool(os.getenv("GMI_API_KEY", "").strip()),
+        "nvidia_configured": bool(os.getenv("NVIDIA_API_KEY", "").strip()),
         "openai_configured": bool(os.getenv("OPENAI_API_KEY", "").strip()),
     }
 
@@ -89,8 +90,23 @@ def capabilities() -> dict[str, Any]:
         "backend": "FastAPI",
         "storage": "Backblaze B2 via the S3-compatible API",
         "orchestration": "Genblaze",
-        "image_models": ["seedream-5.0-lite", "gpt-image-1"],
-        "audio_models": ["minimax-tts-speech-2.6-turbo"],
+        "image_models": [
+            "seedream-5.0-lite",
+            "stabilityai/stable-diffusion-3-5-large",
+            "black-forest-labs/flux.1-schnell",
+            "gpt-image-1",
+        ],
+        "audio_models": [
+            "minimax-tts-speech-2.6-turbo",
+            "nvidia/magpie-tts-multilingual",
+        ],
+        "provider_validation": {
+            "nvidia": {
+                "single_scene_image": True,
+                "single_segment_tts": True,
+                "credentials_exposed": False,
+            }
+        },
         "local_validation": {
             "images": "Pillow",
             "narration": "eSpeak NG",
