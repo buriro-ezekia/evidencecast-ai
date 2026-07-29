@@ -40,3 +40,13 @@ services:
         value: us-east-005
       - key: B2_ENDPOINT
         value: https://s3.us-east-005.backblazeb2.com
+      - key: NVIDIA_API_KEY
+        sync: false
+      - key: NVIDIA_IMAGE_MODEL
+        value: stabilityai/stable-diffusion-3-5-large
+      - key: NVIDIA_AUDIO_MODEL
+        value: nvidia/magpie-tts-multilingual
+      - key: NVIDIA_TTS_VOICE
+        value: Magpie-Multilingual.EN-US.Aria
+      - key: NVIDIA_TTS_ENDPOINT
+        value: https://877104f7-e885-42b9-8de8-f6e4c6303969.invocation.api.nvcf.nvidia.com/v1/audio/synthesize
