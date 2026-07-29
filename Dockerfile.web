@@ -3,8 +3,10 @@ FROM python:3.12-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
+    PYTHONPATH=/app:/app/src \
     PORT=8501 \
     STREAMLIT_SERVER_HEADLESS=true \
+    STREAMLIT_SERVER_ADDRESS=0.0.0.0 \
     STREAMLIT_BROWSER_GATHER_USAGE_STATS=false
 
 WORKDIR /app
@@ -20,7 +22,7 @@ RUN python -m pip install --no-cache-dir --upgrade pip \
 COPY . .
 
 EXPOSE 8501
-HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
+HEALTHCHECK --interval=10s --timeout=5s --start-period=60s --retries=12 \
     CMD curl --fail http://127.0.0.1:${PORT}/_stcore/health || exit 1
 
-CMD streamlit run app.py --server.address=0.0.0.0 --server.port=${PORT} --server.headless=true
+CMD ["sh", "-c", "exec python -m streamlit run app.py --server.address=0.0.0.0 --server.port=${PORT} --server.headless=true"]
