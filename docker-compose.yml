@@ -38,6 +38,11 @@ services:
       B2_REGION: "${B2_REGION:-us-east-005}"
       B2_ENDPOINT: "${B2_ENDPOINT:-https://s3.us-east-005.backblazeb2.com}"
       GMI_API_KEY: "${GMI_API_KEY:-}"
+      NVIDIA_API_KEY: "${NVIDIA_API_KEY:-}"
+      NVIDIA_IMAGE_MODEL: "${NVIDIA_IMAGE_MODEL:-stabilityai/stable-diffusion-3-5-large}"
+      NVIDIA_AUDIO_MODEL: "${NVIDIA_AUDIO_MODEL:-nvidia/magpie-tts-multilingual}"
+      NVIDIA_TTS_VOICE: "${NVIDIA_TTS_VOICE:-Magpie-Multilingual.EN-US.Aria}"
+      NVIDIA_TTS_ENDPOINT: "${NVIDIA_TTS_ENDPOINT:-https://877104f7-e885-42b9-8de8-f6e4c6303969.invocation.api.nvcf.nvidia.com/v1/audio/synthesize}"
       OPENAI_API_KEY: "${OPENAI_API_KEY:-}"
     ports:
       - "8501:8501"
