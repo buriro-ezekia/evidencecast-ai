@@ -8,4 +8,7 @@ pandas
 pypdf
 streamlit
 Pillow
+fastapi
+uvicorn[standard]
+httpx
 pytest
