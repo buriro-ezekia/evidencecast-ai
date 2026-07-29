@@ -8,6 +8,7 @@ __all__ = [
     "extraction",
     "final_media",
     "final_store",
+    "local_assets",
     "media",
     "media_probe",
     "narration",
