@@ -98,7 +98,7 @@ def test_hosted_tts_provider_classifies_auth_failure(tmp_path: Any) -> None:
         http_client=client,  # type: ignore[arg-type]
     )
 
-    with pytest.raises(ProviderError, match="NVIDIA TTS failed \(401\)"):
+    with pytest.raises(ProviderError, match=r"NVIDIA TTS failed \(401\)"):
         provider.generate(_audio_step())
 
 
