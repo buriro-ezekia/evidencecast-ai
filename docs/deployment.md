@@ -74,9 +74,12 @@ streamlit run app.py --server.address=0.0.0.0 --server.port=8501
 
 Create a local `.env` only when B2 or provider-backed features are required. Fixture mode works without it.
 
+Build and start both services, then wait until their Docker health checks pass:
+
 ```bash
-docker compose build
-docker compose up
+docker compose build --no-cache
+docker compose up -d --wait --wait-timeout 180
+docker compose ps
 ```
 
 Open:
@@ -94,6 +97,26 @@ curl --fail http://localhost:8000/healthz
 curl --fail http://localhost:8000/readyz
 curl --fail http://localhost:8501/_stcore/health
 ```
+
+Run the retry-aware smoke test:
+
+```bash
+python scripts/smoke_test_deployment.py \
+  --api-url http://localhost:8000 \
+  --web-url http://localhost:8501 \
+  --startup-timeout 120
+```
+
+When the frontend does not become healthy, inspect its state and logs before restarting:
+
+```bash
+docker compose ps -a
+docker compose logs web --tail=200
+docker compose restart web
+docker compose up -d --wait --wait-timeout 180
+```
+
+The Streamlit image sets `PYTHONPATH=/app:/app/src`, launches Streamlit through `python -m streamlit`, and has an extended startup health window. This avoids import-path failures and prevents an immediate smoke test from misclassifying a service that is still starting.
 
 Stop the stack:
 
@@ -135,10 +158,10 @@ export EVIDENCECAST_WEB_PUBLIC_URL="https://your-web-service.onrender.com"
 Run:
 
 ```bash
-curl --fail "$EVIDENCECAST_API_PUBLIC_URL/healthz"
-curl --fail "$EVIDENCECAST_API_PUBLIC_URL/readyz"
-curl --fail "$EVIDENCECAST_API_PUBLIC_URL/api/v1/fixtures"
-curl --fail "$EVIDENCECAST_WEB_PUBLIC_URL/_stcore/health"
+python scripts/smoke_test_deployment.py \
+  --api-url "$EVIDENCECAST_API_PUBLIC_URL" \
+  --web-url "$EVIDENCECAST_WEB_PUBLIC_URL" \
+  --startup-timeout 180
 ```
 
 The expected readiness response reports:
