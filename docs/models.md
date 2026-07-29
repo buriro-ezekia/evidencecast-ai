@@ -9,8 +9,28 @@ EvidenceCast separates approved evidence from generated media. A model may propo
 | Modality | Provider | Default model | Role | Current live status |
 |---|---|---|---|---|
 | Image | GMI Cloud | `seedream-5.0-lite` | Three storyboard scene images | Request and failure persistence validated; live output blocked by insufficient credits |
+| Image | NVIDIA NIM | `stabilityai/stable-diffusion-3-5-large` | Controlled one-scene live validation, then storyboard images | Official Genblaze NVIDIA connector implemented; account-specific model availability must be confirmed live |
 | Image | OpenAI API | `gpt-image-1` | Optional image fallback | Implemented; requires separately funded API billing |
 | Audio | GMI Cloud | `minimax-tts-speech-2.6-turbo` | Three narration clips | Correct payload and voice mapping validated; live output blocked by insufficient credits |
+| Audio | NVIDIA hosted NIM | `nvidia/magpie-tts-multilingual` | Controlled approved-segment TTS validation | Wrapped as a Genblaze synchronous provider using the hosted Magpie synthesis endpoint |
+
+## NVIDIA provider path
+
+The NVIDIA route uses `NVIDIA_API_KEY`; the hosted key normally begins with `nvapi-`. The secret is read only from the environment and is never written into request JSON, logs, the FastAPI readiness response or B2 metadata.
+
+Image generation uses the official `genblaze-nvidia` `NvidiaImageProvider`. The connector supports NVIDIA NIM image families including Stable Diffusion XL, Stable Diffusion 3.5 and FLUX. Because hosted availability can vary by model and account, EvidenceCast begins with one scene and accepts success only after the asset and manifest verification gates pass.
+
+Narration uses NVIDIA Magpie multilingual TTS through an EvidenceCast synchronous Genblaze provider. The default settings are:
+
+```text
+Model: nvidia/magpie-tts-multilingual
+Language: en-US
+Voice: Magpie-Multilingual.EN-US.Aria
+Encoding: LINEAR_PCM
+Sample rate: 44100 Hz
+```
+
+The public service endpoint is configurable with `NVIDIA_TTS_ENDPOINT`; it is not a credential.
 
 ## Orchestration
 
@@ -63,7 +83,7 @@ Every local delivery records:
 }
 ```
 
-This route proves the complete application and delivery pipeline while avoiding false claims about GMI or OpenAI generation.
+This route proves the complete application and delivery pipeline while avoiding false claims about provider generation.
 
 ## Fixture mode
 
@@ -106,7 +126,7 @@ Potentially retryable failures include:
 - connection resets; and
 - temporary HTTP 5xx provider errors.
 
-Retries are bounded and every attempt is stored. An insufficient-credit response stops after the first attempt even when a higher maximum-attempt value was configured.
+The controlled NVIDIA validation uses zero automatic provider retries. This makes the first live request auditable and prevents repeated submissions while model access or payload compatibility is still being established.
 
 ## Model changes
 
