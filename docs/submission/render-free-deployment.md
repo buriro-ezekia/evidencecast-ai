@@ -14,7 +14,7 @@ This runbook deploys EvidenceCast AI as two public Render Free web services whil
 ## Before creating the Blueprint
 
 1. Confirm the repository contains no populated `.env` file, API key, B2 application key or presigned B2 URL.
-2. Confirm the deployment branch is `feat/day-09-render-free-deployment`.
+2. Confirm the deployment branch is `feat/day-08-submission-package`.
 3. In Render, connect the GitHub account that can read `buriro-ezekia/evidencecast-ai`.
 4. Ensure the Render GitHub App has access to this private repository.
 
@@ -23,7 +23,7 @@ This runbook deploys EvidenceCast AI as two public Render Free web services whil
 1. Open the Render Dashboard.
 2. Choose **New +** and then **Blueprint**.
 3. Select `buriro-ezekia/evidencecast-ai`.
-4. Select branch `feat/day-09-render-free-deployment`.
+4. Select branch `feat/day-08-submission-package`.
 5. Confirm Render finds the root `render.yaml`.
 6. Approve creation of both Free web services.
 7. Enter only the bucket-restricted B2 values requested for `evidencecast-web-buriro-2026`:
