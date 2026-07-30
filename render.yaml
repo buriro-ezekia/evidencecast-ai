@@ -7,7 +7,7 @@ services:
     runtime: docker
     plan: free
     region: frankfurt
-    branch: feat/day-08-submission-package
+    branch: main
     autoDeployTrigger: commit
     dockerfilePath: ./Dockerfile.api
     dockerContext: .
@@ -23,7 +23,7 @@ services:
     runtime: docker
     plan: free
     region: frankfurt
-    branch: feat/day-08-submission-package
+    branch: main
     autoDeployTrigger: commit
     dockerfilePath: ./Dockerfile.web
     dockerContext: .
