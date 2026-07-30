@@ -1,0 +1,35 @@
+# Python caches and environments
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+
+# Generated media and manifests
+artifacts/
+outputs/
+*.png
+*.jpg
+*.jpeg
+*.webp
+*.mp3
+*.wav
+*.mp4
+*.manifest.json
+
+# Test and tooling caches
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Operating-system and editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

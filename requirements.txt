@@ -1,0 +1,15 @@
+genblaze-core
+genblaze-gmicloud
+genblaze-nvidia
+genblaze-openai
+genblaze-s3
+python-dotenv
+boto3
+pandas
+pypdf
+streamlit
+Pillow
+fastapi
+uvicorn[standard]
+httpx2
+pytest

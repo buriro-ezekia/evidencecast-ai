@@ -1,0 +1,45 @@
+# Deploys EvidenceCast as two public Render Free web services.
+# The Streamlit frontend calls the FastAPI backend through its public HTTPS URL because
+# Render Free web services cannot receive private-network traffic.
+services:
+  - type: web
+    name: evidencecast-api-buriro-2026
+    runtime: docker
+    plan: free
+    region: frankfurt
+    branch: main
+    autoDeployTrigger: commit
+    dockerfilePath: ./Dockerfile.api
+    dockerContext: .
+    healthCheckPath: /healthz
+    envVars:
+      - key: EVIDENCECAST_FIXTURE_MODE
+        value: "1"
+      - key: EVIDENCECAST_ALLOWED_ORIGINS
+        value: "*"
+
+  - type: web
+    name: evidencecast-web-buriro-2026
+    runtime: docker
+    plan: free
+    region: frankfurt
+    branch: main
+    autoDeployTrigger: commit
+    dockerfilePath: ./Dockerfile.web
+    dockerContext: .
+    healthCheckPath: /_stcore/health
+    envVars:
+      - key: EVIDENCECAST_FIXTURE_MODE
+        value: "1"
+      - key: EVIDENCECAST_API_URL
+        value: https://evidencecast-api-buriro-2026.onrender.com
+      - key: B2_KEY_ID
+        sync: false
+      - key: B2_APP_KEY
+        sync: false
+      - key: B2_BUCKET
+        sync: false
+      - key: B2_REGION
+        value: us-east-005
+      - key: B2_ENDPOINT
+        value: https://s3.us-east-005.backblazeb2.com
