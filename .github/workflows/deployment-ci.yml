@@ -1,4 +1,4 @@
-# Tests the complete suite and confirms both deployment images build without secrets.
+# Tests the complete suite, builds both deployment images and verifies the public services.
 name: Deployment CI
 
 on:
@@ -64,3 +64,23 @@ jobs:
 
       - name: Build ${{ matrix.name }} image
         run: docker build --file "${{ matrix.dockerfile }}" --tag "evidencecast-${{ matrix.name }}:ci" .
+
+  public-smoke:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: docker-builds
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Allow Render auto-deploy to start
+        run: sleep 180
+
+      - name: Smoke-test public services
+        run: |
+          python scripts/smoke_test_deployment.py \
+            --api-url https://evidencecast-api-buriro-2026.onrender.com \
+            --web-url https://evidencecast-web-buriro-2026.onrender.com \
+            --startup-timeout 300 \
+            --retry-interval 5
