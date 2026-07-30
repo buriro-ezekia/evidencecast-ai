@@ -4,7 +4,7 @@
 
 EvidenceCast is deployed as two independent web services:
 
-| Service | Technology | Default port | Health endpoint |
+| Service | Technology | Default local port | Health endpoint |
 |---|---|---:|---|
 | `evidencecast-web` | Streamlit | 8501 | `/_stcore/health` |
 | `evidencecast-api` | FastAPI/Uvicorn | 8000 | `/healthz` |
@@ -30,14 +30,16 @@ B2_REGION
 B2_ENDPOINT
 ```
 
-For live provider generation, configure one or both of:
+For private local live-provider validation, configure only the provider keys you actually use:
 
 ```text
 GMI_API_KEY
 OPENAI_API_KEY
+NVIDIA_API_KEY
+GOOGLE_API_KEY
 ```
 
-Never commit populated `.env` files or paste keys into issue comments, screenshots or fixture JSON.
+Do not place media-provider keys in the public judge deployment. This prevents public users from consuming provider credits. Never commit populated `.env` files or paste keys into issue comments, screenshots or fixture JSON.
 
 ## Local Python setup
 
@@ -124,35 +126,44 @@ Stop the stack:
 docker compose down
 ```
 
-## Render Blueprint deployment
+## Render Free Blueprint deployment
 
-The root `render.yaml` creates two Docker web services in the Frankfurt region:
+The root `render.yaml` creates two public Docker web services in the Frankfurt region:
 
-- `evidencecast-api`;
-- `evidencecast-web`.
+- `evidencecast-api-buriro-2026`;
+- `evidencecast-web-buriro-2026`.
 
-The frontend receives the backend private `hostport` through `EVIDENCECAST_API_URL`. The frontend client automatically adds the `http://` scheme when Render supplies a bare private host and port.
+Render Free web services cannot receive private-network traffic. The Streamlit service therefore calls the FastAPI service through this public HTTPS URL:
+
+```text
+https://evidencecast-api-buriro-2026.onrender.com
+```
+
+Backblaze B2 remains the durable system of record because Render Free filesystems are ephemeral.
 
 Deployment steps:
 
-1. Push `feat/day-06-deployment-fixtures-docs` or merge it into the deployment branch.
+1. Use branch `feat/day-08-submission-package`.
 2. In Render, create a new Blueprint.
-3. Connect the `buriro-ezekia/evidencecast-ai` repository.
+3. Connect the private `buriro-ezekia/evidencecast-ai` repository through the Render GitHub App.
 4. Select the root `render.yaml`.
-5. Enter the requested B2 values for the frontend service.
-6. Create the Blueprint and wait for both health checks to pass.
-7. Open the `evidencecast-web` public URL.
-8. Open **Fixture mode for judges** and load each of the three samples.
+5. Enter only `B2_KEY_ID`, `B2_APP_KEY` and `B2_BUCKET` for the Streamlit service.
+6. Do not add GMI, OpenAI, NVIDIA or Google keys to the public deployment.
+7. Create the Blueprint and wait for both health checks to pass.
+8. Open `https://evidencecast-web-buriro-2026.onrender.com`.
+9. Open **Fixture mode for judges** and load each of the three samples.
 
-Provider keys can be added later from the service environment settings. They are not required for fixture exploration.
+The first request after 15 minutes of inactivity can take about one minute while a Free service wakes.
+
+For the full owner runbook, see [`submission/render-free-deployment.md`](submission/render-free-deployment.md).
 
 ## Post-deployment smoke test
 
-Set the deployed URLs:
+Set the deployed URLs. Replace them only when Render assigns different subdomains:
 
 ```bash
-export EVIDENCECAST_API_PUBLIC_URL="https://your-api-service.onrender.com"
-export EVIDENCECAST_WEB_PUBLIC_URL="https://your-web-service.onrender.com"
+export EVIDENCECAST_API_PUBLIC_URL="https://evidencecast-api-buriro-2026.onrender.com"
+export EVIDENCECAST_WEB_PUBLIC_URL="https://evidencecast-web-buriro-2026.onrender.com"
 ```
 
 Run:
@@ -161,7 +172,7 @@ Run:
 python scripts/smoke_test_deployment.py \
   --api-url "$EVIDENCECAST_API_PUBLIC_URL" \
   --web-url "$EVIDENCECAST_WEB_PUBLIC_URL" \
-  --startup-timeout 180
+  --startup-timeout 240
 ```
 
 The expected readiness response reports:
@@ -174,8 +185,20 @@ The expected readiness response reports:
 }
 ```
 
+Expected smoke-test checks:
+
+```text
+PASS fixture: biolarviciding-community-acceptance
+PASS fixture: climate-finance-smallholders
+PASS fixture: teacher-attendance-supervision
+PASS frontend health
+PASS backend health
+PASS backend readiness
+PASS all three sample reports
+```
+
 Configuration booleans may differ according to the deployed secrets. Secret values are never returned.
 
 ## Rollback
 
-Render retains previous successful deploys. Roll back the frontend and backend together when an interface contract changes. Fixture API version `v1` is intentionally stable for the hackathon submission.
+Render retains the two most recent previous deploys for Free web services. Roll back the frontend and backend together when an interface contract changes. Fixture API version `v1` is intentionally stable for the hackathon submission.
