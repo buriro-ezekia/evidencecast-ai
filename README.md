@@ -1,52 +1,163 @@
 # EvidenceCast AI
 
-EvidenceCast AI converts approved research findings into traceable multimedia communication assets, including evidence cards, infographics, narration and short videos. Every generated asset is stored with provenance metadata in Backblaze B2 through Genblaze.
+EvidenceCast AI is a human-reviewed research-to-media workflow that turns approved evidence into traceable storyboards, narration, infographics and short videos. Provider media generation is orchestrated through Genblaze, while source records, reviews, provider outcomes, fallback deliveries and provenance metadata are stored durably in Backblaze B2.
 
-## Hackathon
+## Public links
 
-This repository is being developed for the Backblaze Generative Media Hackathon: Build with Genblaze on B2.
+- **Live application:** https://evidencecast-web-buriro-2026.onrender.com/
+- **Public API:** https://evidencecast-api-buriro-2026.onrender.com/
+- **Project website:** https://buriro-ezekia.github.io/evidencecast-ai/
+- **Demonstration video:** https://www.youtube.com/watch?v=tCU5KRakVxE
+
+The Render services use Free instances and may require around one minute to wake after inactivity.
+
+## The problem
+
+Research teams often need to turn technical findings into clear public-facing media. Conventional generative workflows can weaken the connection between the source evidence and the final claim, especially when prompts, edits, provider failures and regenerated assets are not retained.
+
+EvidenceCast AI keeps human approval and provenance inside the media pipeline rather than treating them as optional documentation.
+
+## What it does
+
+1. Accepts PDF, Markdown and plain-text evidence sources.
+2. Stores the original source and extracted text in Backblaze B2 under a SHA-256-addressed source root.
+3. Creates evidence-card candidates with locked source excerpts and page references.
+4. Requires a reviewer to approve, edit or reject every claim.
+5. Builds a three-scene storyboard from approved cards only.
+6. Creates editable narration that must be approved before text-to-speech submission.
+7. Runs image scenes and narration segments as separate Genblaze pipelines.
+8. Stores requests, progress, outcomes, failures, hashes and manifests in B2.
+9. Supports scene-level regeneration with parent-child lineage.
+10. Evaluates evidence consistency and assembles subtitles, thumbnails, infographics and captioned video deliveries.
 
 ## Core workflow
 
 ```text
-Upload trusted evidence
-        ↓
-Approve evidence claims
-        ↓
-Generate a structured media plan
-        ↓
-Generate images, narration and video
-        ↓
-Validate claims and media quality
-        ↓
-Store assets and provenance in Backblaze B2
-        ↓
-Review, revise and publish
+Trusted evidence
+      ↓
+Evidence extraction and SHA-256 source identity
+      ↓
+Human-reviewed evidence cards
+      ↓ approved claims only
+Three-scene storyboard
+      ↓
+Reviewed narration
+      ↓
+Scene-level Genblaze media pipelines
+      ↓
+Evaluation, regeneration and lineage
+      ↓
+Backblaze B2 assets, logs and provenance
+      ↓
+Captioned delivery package
 ```
 
-## Day 1 vertical slice
+## Genblaze usage
 
-The first implementation generates one EvidenceCast concept image through Genblaze, persists the image and its canonical provenance manifest to a private Backblaze B2 bucket, and fails the run unless `Manifest.verify()` returns `True`.
+Genblaze controls the provider-generation and provenance boundary. Each scene image and narration segment is isolated as its own pipeline so that EvidenceCast can retain one provider/model record per media item, classify failures, stop non-retryable requests, apply bounded retries to transient errors and regenerate one scene without rebuilding successful assets.
 
-### Providers and models
+A provider result is accepted only when:
 
-- Orchestration: Genblaze
-- Preferred media provider: GMI Cloud
-- Default GMI Cloud image model: `seedream-5.0-lite`
-- Optional image fallback provider: OpenAI API
-- Default OpenAI image model: `gpt-image-1`
-- Storage: private Backblaze B2 bucket through `genblaze-s3`
-- Storage layout: Genblaze hierarchical key strategy
+- Genblaze records a completed step;
+- a non-empty asset is present;
+- the asset has a SHA-256 value;
+- the canonical provenance manifest has a B2 URI and canonical hash; and
+- `Manifest.verify()` returns `True`.
 
-GMI Cloud remains the preferred provider because it aligns directly with the hackathon ecosystem. The OpenAI provider is available only as an operational fallback when GMI Cloud has no usable credit balance.
+Requests that fail this gate are stored as failures and cannot enter the successful provider-generated delivery path.
 
-### Day 1 quick start
+## Backblaze B2 usage
+
+Backblaze B2 is the durable workflow ledger, not merely a final-file destination. It stores:
+
+- original sources, extracted text and extraction metadata;
+- evidence-card candidates, reviewer decisions and approved claims;
+- storyboards, prompts, narration plans and narration reviews;
+- provider requests, progress events, results and controlled failures;
+- Genblaze provenance manifests and asset hashes;
+- regeneration requests, retry attempts and parent-child lineage;
+- SRT and WebVTT captions, images, audio, thumbnails and infographics;
+- captioned MP4 deliveries; and
+- final assembly manifests with B2 size and SHA-256 verification.
+
+## Providers and models
+
+| Modality | Provider or tool | Model | Current status |
+|---|---|---|---|
+| Image | GMI Cloud | `seedream-5.0-lite` | Authenticated request reached the provider boundary; HTTP 402 insufficient credits prevented an asset. |
+| Audio | GMI Cloud | `minimax-tts-speech-2.6-turbo` | Correct request and voice mapping reached the provider boundary; HTTP 402 insufficient credits prevented an asset. |
+| Image | OpenAI API | `gpt-image-1` | Integration implemented; separately funded live generation is not claimed. |
+| Image | NVIDIA NIM | `stabilityai/stable-diffusion-3-5-large` | Hosted model was unavailable for the account during validation. |
+| Audio | NVIDIA hosted NIM | `nvidia/magpie-tts-multilingual` | Synthesis returned HTTP 504 and later voice discovery timed out. |
+| Reviewed fallback image | Pillow | No AI model | Completed and explicitly marked `provider_generated: false`. |
+| Reviewed fallback audio | eSpeak NG | No AI model | Completed and explicitly marked `provider_generated: false`. |
+| Composition | FFmpeg and FFprobe | No AI model | Used for timing, subtitles, thumbnail inputs and captioned MP4 assembly. |
+
+No failed provider request is represented as a successful generated asset.
+
+## Verified reviewed delivery
+
+The current reviewed fallback package is:
+
+```text
+DEL-LOCAL-20260729T082428Z-aaa74869
+```
+
+Its manifest records:
+
+```json
+{
+  "delivery_mode": "local_validation_fallback",
+  "provider_generated": false,
+  "image_generator": "pillow",
+  "narration_generator": "espeak"
+}
+```
+
+This delivery verifies the reviewed evidence-to-media workflow and durable B2 path without misrepresenting deterministic fallback assets as provider-generated media.
+
+## Judge fixture mode
+
+The public application includes three synthetic fixtures that contain no personal data:
+
+- community acceptance of biolarviciding;
+- climate financing and smallholder farmers; and
+- teacher attendance supervision.
+
+Each fixture provides three approved evidence cards, a three-scene approved-only storyboard and three approved narration segments. Provider keys are not required to explore these fixtures.
+
+## Public hosting safety
+
+The public Render Free frontend sets:
+
+```text
+EVIDENCECAST_DISABLE_HEAVY_ASSEMBLY=1
+```
+
+This preserves workflow restoration, fixture exploration and consistency evaluation while disabling new Pillow, eSpeak and FFmpeg assembly controls on the small hosted instance. Full assembly remains available locally or on an adequately provisioned private deployment.
+
+## Quick start
+
+### Prerequisites
+
+- Python 3.12;
+- Git;
+- FFmpeg and FFprobe;
+- eSpeak NG for the reviewed local delivery route; and
+- optional Docker with Compose.
+
+### Clone the final branch
 
 ```bash
 git clone https://github.com/buriro-ezekia/evidencecast-ai.git
 cd evidencecast-ai
-git switch feat/day-01-genblaze-b2
+git switch main
+git pull origin main
+```
 
+### Create the environment
+
+```bash
 python -m venv .venv
 source .venv/bin/activate
 python -m pip install --upgrade pip
@@ -54,218 +165,84 @@ pip install -r requirements.txt
 cp .env.example .env
 ```
 
-Enter the B2 and provider credentials in the local `.env` file, then run:
+On Ubuntu or Codespaces:
 
 ```bash
-python scripts/day01_generate_image.py
+sudo apt-get update
+sudo apt-get install -y ffmpeg espeak-ng
 ```
 
-A successful run prints the image location, image SHA-256, manifest location, canonical manifest hash and `Manifest verified: True`.
+Fixture-only exploration requires no secret values. Keep:
 
-A GMI Cloud HTTP 402 response means authentication succeeded but the organisation has insufficient credits. The optional OpenAI fallback requires separately funded OpenAI API billing:
-
-```bash
-python scripts/day01_generate_image.py --provider openai
+```text
+EVIDENCECAST_FIXTURE_MODE=1
+EVIDENCECAST_API_URL=http://localhost:8000
+EVIDENCECAST_DISABLE_HEAVY_ASSEMBLY=0
 ```
 
-See [`docs/day-01-runbook.md`](docs/day-01-runbook.md).
+### Run locally
 
-## Day 2 evidence workflow
-
-The evidence workflow is implemented as a Streamlit interface. It accepts PDF, Markdown and plain-text sources, stores the original source and derived extraction artefacts in Backblaze B2, creates deterministic evidence-card candidates, and requires a human decision before a claim can move into media generation.
-
-### Day 2 capabilities
-
-- PDF and text upload;
-- SHA-256-addressed source storage in B2;
-- page-aware PDF text extraction;
-- extracted-text and extraction-metadata persistence;
-- transparent evidence-card candidate generation;
-- editable claims with locked source excerpts;
-- approve, reject and pending decisions;
-- reviewer notes;
-- reviewed evidence-card JSON stored in B2; and
-- downloadable review JSON for inspection.
-
-See [`docs/day-02-runbook.md`](docs/day-02-runbook.md).
-
-## Day 3 storyboard and image generation
-
-Day 3 creates a structured three-scene storyboard from approved evidence cards only. It stores the storyboard and prompts in B2, then runs each scene through Genblaze while streaming durable progress events.
-
-### Day 3 capabilities
-
-- exactly three approved cards required for three scenes;
-- deterministic storyboard IDs;
-- structured storyboard JSON with card IDs, claims, narration, on-screen text, prompts, excerpts and page references;
-- storyboard and scene-prompt persistence in B2;
-- one Genblaze image pipeline per scene;
-- immutable progress events and a current progress record in B2;
-- per-scene request and result JSON;
-- B2-linked image SHA-256 and provenance metadata;
-- partial-failure preservation; and
-- final completed or failed generation summary.
-
-See [`docs/day-03-runbook.md`](docs/day-03-runbook.md).
-
-## Day 4 narration and audio generation
-
-Day 4 turns the approved-only storyboard into editable spoken narration. Every narration segment must be reviewed and approved before the application can submit three audio-generation jobs through Genblaze.
-
-### Day 4 capabilities
-
-- deterministic three-segment narration plan;
-- storyboard and evidence-card traceability for every segment;
-- editable spoken narration with locked evidence claims;
-- pending, approved and rejected review decisions;
-- explicit all-approved gate before TTS;
-- narration plan and review persistence in B2;
-- three GMI Cloud audio pipelines through Genblaze;
-- default audio model `minimax-tts-speech-2.6-turbo`;
-- immutable audio progress events and current-state record in B2;
-- per-segment request and result JSON;
-- audio SHA-256 and canonical provenance verification enforcement;
-- partial-failure preservation; and
-- final completed or failed audio summary.
-
-### Day 4 quick start
+Terminal 1:
 
 ```bash
-git fetch origin
-git switch feat/day-04-narration-audio
-git pull origin feat/day-04-narration-audio
-pip install -r requirements.txt
+uvicorn backend.main:app --host 0.0.0.0 --port 8000
+```
+
+Terminal 2:
+
+```bash
+streamlit run app.py --server.address=0.0.0.0 --server.port=8501
+```
+
+Open:
+
+```text
+http://localhost:8501
+http://localhost:8000/docs
+```
+
+### Test
+
+```bash
 pytest -q
-streamlit run app.py --server.address 0.0.0.0 --server.port 8501
 ```
 
-Open **Narration and audio** from the Streamlit sidebar after creating the Day 3 storyboard. When the Streamlit session has expired, the B2 recovery pages restore the approved storyboard and narration review.
-
-See [`docs/day-04-runbook.md`](docs/day-04-runbook.md).
-
-## Day 5 final media and evaluation
-
-Day 5 completes the local delivery and evaluation layer. It can operate with generated provider assets when available or with manually reviewed scene images and narration clips while provider credits remain unavailable.
-
-### Day 5 capabilities
-
-- evidence consistency checks across storyboard, narration, evidence-card links and source SHA-256;
-- optional validation of completed image and audio summaries;
-- required asset SHA-256 and `manifest_verified` checks;
-- SRT and WebVTT subtitle generation timed from actual narration clips;
-- captioned MP4 composition with FFmpeg;
-- 16:9 thumbnail export;
-- three-card infographic export from approved storyboard claims only;
-- final input and output persistence in B2;
-- B2 metadata SHA-256 and object-size verification;
-- final assembly manifest;
-- image or audio scene-level regeneration;
-- parent-child run relationships;
-- immutable regeneration request, lineage, attempt and summary records;
-- bounded exponential retries for transient failures; and
-- immediate stop for invalid payloads, authentication failures, content-policy refusals and insufficient credits.
-
-### Day 5 quick start
+### Docker Compose
 
 ```bash
-git fetch origin
-git switch feat/day-05-final-media-evaluation
-git pull origin feat/day-05-final-media-evaluation
-pip install -r requirements.txt
-sudo apt-get update && sudo apt-get install -y ffmpeg
-pytest -q
-streamlit run app.py --server.address 0.0.0.0 --server.port 8501
+docker compose build
+docker compose up
 ```
 
-Open **Final media and evaluation** from the Streamlit sidebar. The page can restore the approved storyboard and narration directly from B2.
+Then run:
 
-See [`docs/day-05-runbook.md`](docs/day-05-runbook.md).
+```bash
+python scripts/smoke_test_deployment.py \
+  --api-url http://localhost:8000 \
+  --web-url http://localhost:8501
+```
 
 ## Security
 
-Do not commit API keys, B2 application keys, bucket credentials or populated `.env` files. Use `.env.example` only as a template and store real credentials in a local `.env` file or deployment secret manager.
+- Never commit populated `.env` files or provider credentials.
+- Use a bucket-restricted B2 application key.
+- Keep provider keys out of the public judge deployment.
+- Health and readiness endpoints expose configuration booleans only, never secret values.
+- Treat the synthetic fixtures as deployment tests rather than new research findings.
 
-The B2 key should remain restricted to the EvidenceCast bucket. The application does not require account-wide B2 access.
+## Documentation
 
-## Delivery status
+- [Developer setup](docs/setup.md)
+- [Architecture](docs/architecture.md)
+- [Deployment](docs/deployment.md)
+- [Fixture mode](docs/fixture-mode.md)
+- [Providers, models, Genblaze and B2](docs/submission/providers-and-models.md)
+- [Local validation delivery](docs/local-validation-delivery.md)
+- [Submission package](docs/submission/README.md)
+- [Public verification checklist](docs/submission/public-verification-checklist.md)
 
-### Day 1
-
-- [x] Devpost project created
-- [x] GitHub repository created
-- [x] Private B2 bucket created
-- [x] Bucket-restricted B2 application key created
-- [x] B2 Native API and S3-compatible credentials validated
-- [x] Genblaze and image-provider dependencies defined
-- [x] Image-generation and B2-persistence script implemented
-- [x] GMI Cloud request submitted successfully to the provider boundary
-- [x] Local Genblaze manifest smoke test verified
-- [ ] GMI Cloud account funded or alternative funded provider configured
-- [ ] Live image generation completed
-- [ ] Generated image and manifest confirmed in B2
-- [ ] `Manifest.verify()` confirmed as `True` from a live provider run
-
-### Day 2
-
-- [x] PDF and text upload implemented
-- [x] Original source storage in B2 implemented
-- [x] PDF and text extraction implemented
-- [x] Evidence-card candidate generation implemented
-- [x] Approve, reject and edit interface implemented
-- [x] Reviewed evidence-card persistence implemented
-- [x] Live Codespaces interface test completed
-- [x] Source bundle and reviewed cards confirmed in B2
-- [x] Automated tests passed
-
-### Day 3
-
-- [x] Approved-only storyboard builder implemented
-- [x] Structured three-scene storyboard JSON implemented
-- [x] Storyboard and prompt persistence implemented
-- [x] Three-scene Genblaze orchestration implemented
-- [x] Progress streaming and B2 progress records implemented
-- [x] Partial-failure preservation implemented
-- [x] Day 3 automated tests passed
-- [x] Storyboard and prompt records confirmed in B2
-- [x] Controlled GMI credit failure persisted correctly
-- [ ] Three live scene images generated
-- [ ] Three verified image manifests confirmed in B2
-
-### Day 4
-
-- [x] Three-segment narration-plan builder implemented
-- [x] Human narration review interface implemented
-- [x] All-approved audio gate implemented
-- [x] Narration plan and review persistence implemented
-- [x] Three-segment Genblaze audio orchestration implemented
-- [x] Audio progress and failure persistence implemented
-- [x] Correct GMI TTS `text` payload and English voice mapping implemented
-- [x] Three narration segments approved and confirmed in B2
-- [x] Corrected request reached the GMI credit boundary
-- [x] Controlled GMI credit failure persisted correctly
-- [x] Day 4 automated tests added
-- [ ] Day 4 tests executed in Codespaces after the latest correction
-- [ ] Three live audio clips generated
-- [ ] Three verified audio manifests confirmed in B2
-
-### Day 5
-
-- [x] Evidence consistency evaluator implemented
-- [x] Generated-asset manifest-record checks implemented
-- [x] SRT and WebVTT subtitle generation implemented
-- [x] FFmpeg captioned MP4 assembly implemented
-- [x] Thumbnail export implemented
-- [x] Infographic export implemented
-- [x] Final delivery manifest and B2 integrity verification implemented
-- [x] Scene-level image and audio regeneration implemented
-- [x] Parent-child run lineage implemented
-- [x] Failure classification and bounded retry handling implemented
-- [x] Day 5 automated tests added
-- [ ] Day 5 tests executed in Codespaces
-- [ ] Captioned MP4 assembled from three approved scene assets
-- [ ] Final delivery package confirmed and verified in B2
-- [ ] Scene-level regeneration lineage validated live
+Historical milestone runbooks remain under `docs/day-01-runbook.md` through `docs/day-05-runbook.md`.
 
 ## Licence
 
-A licence will be selected before the public hackathon submission.
+This project is released under the [MIT Licence](LICENSE).
