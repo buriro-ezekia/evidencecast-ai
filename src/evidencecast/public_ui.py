@@ -17,9 +17,17 @@ def env_flag(name: str, *, default: bool = False) -> bool:
 
 
 def heavy_assembly_disabled() -> bool:
-    """Return whether public-hosting safety should disable media assembly controls."""
+    """Return whether public hosting should disable media assembly controls.
 
-    return env_flag("EVIDENCECAST_DISABLE_HEAVY_ASSEMBLY", default=False)
+    An explicit EVIDENCECAST_DISABLE_HEAVY_ASSEMBLY value always wins. When the
+    flag is absent, Render is treated as a public hosted environment because it
+    automatically sets RENDER=true at runtime. Local development remains enabled.
+    """
+
+    explicit = os.getenv("EVIDENCECAST_DISABLE_HEAVY_ASSEMBLY")
+    if explicit is not None:
+        return explicit.strip().lower() in TRUTHY_VALUES
+    return env_flag("RENDER", default=False)
 
 
 def _replace_once(text: str, old: str, new: str, *, path: Path) -> str:
@@ -48,13 +56,13 @@ def configure_public_ui(repository_root: Path) -> list[Path]:
     updated_local = _replace_once(
         local_text,
         'if st.button("Generate, assemble and verify local delivery", type="primary", use_container_width=True):',
-        'if st.button(\n    "Generate, assemble and verify local delivery",\n    type="primary",\n    use_container_width=True,\n    disabled=True,\n    help="Disabled on the public Render Free service. Run locally or on a larger private instance.",\n):',
+        'if st.button(\n    "Generate, assemble and verify local delivery",\n    type="primary",\n    use_container_width=True,\n    disabled=True,\n    help="Disabled on the public Render service. Run locally or on a larger private instance.",\n):',
         path=local_page,
     )
     updated_local = _replace_once(
         updated_local,
         'st.subheader("Build complete local validation package")',
-        'st.subheader("Build complete local validation package")\nst.info(\n    "Public judge mode keeps this resource-intensive control disabled to protect the "\n    "512 MB Render Free service. Restore and inspect the approved workflow here, then "\n    "run assembly locally or on an adequately provisioned private deployment."\n)',
+        'st.subheader("Build complete local validation package")\nst.info(\n    "Public judge mode keeps this resource-intensive control disabled to protect the "\n    "hosted Render service. Restore and inspect the approved workflow here, then "\n    "run assembly locally or on an adequately provisioned private deployment."\n)',
         path=local_page,
     )
     if updated_local != local_text:
@@ -66,13 +74,13 @@ def configure_public_ui(repository_root: Path) -> list[Path]:
     updated_final = _replace_once(
         final_text,
         'disabled=not assembly_ready,',
-        'disabled=True,\n    help="Disabled on the public Render Free service. Run locally or on a larger private instance.",',
+        'disabled=True,\n    help="Disabled on the public Render service. Run locally or on a larger private instance.",',
         path=final_page,
     )
     updated_final = _replace_once(
         updated_final,
         'st.subheader("2. Subtitles, captioned MP4, thumbnail and infographic")',
-        'st.subheader("2. Subtitles, captioned MP4, thumbnail and infographic")\nst.info(\n    "Public judge mode allows workflow restoration and consistency evaluation but "\n    "disables new FFmpeg assembly on the small hosted instance. Use the documented "\n    "local workflow for new delivery builds."\n)',
+        'st.subheader("2. Subtitles, captioned MP4, thumbnail and infographic")\nst.info(\n    "Public judge mode allows workflow restoration and consistency evaluation but "\n    "disables new FFmpeg assembly on the hosted instance. Use the documented "\n    "local workflow for new delivery builds."\n)',
         path=final_page,
     )
     if updated_final != final_text:
