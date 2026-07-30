@@ -16,6 +16,7 @@ concurrency:
 
 permissions:
   contents: read
+  issues: write
 
 jobs:
   tests:
@@ -78,9 +79,34 @@ jobs:
         run: sleep 180
 
       - name: Smoke-test public services
+        id: smoke
         run: |
+          set -o pipefail
           python scripts/smoke_test_deployment.py \
             --api-url https://evidencecast-api-buriro-2026.onrender.com \
             --web-url https://evidencecast-web-buriro-2026.onrender.com \
             --startup-timeout 300 \
-            --retry-interval 5
+            --retry-interval 5 \
+            2>&1 | tee smoke-output.txt
+
+      - name: Record smoke result in issue 16
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SMOKE_OUTCOME: ${{ steps.smoke.outcome }}
+        run: |
+          {
+            echo "## Automated public smoke test"
+            echo
+            echo "Commit: \`${GITHUB_SHA}\`"
+            echo "Outcome: **${SMOKE_OUTCOME}**"
+            echo
+            echo '```text'
+            if [[ -f smoke-output.txt ]]; then
+              cat smoke-output.txt
+            else
+              echo "Smoke test did not produce an output file."
+            fi
+            echo '```'
+          } > smoke-comment.md
+          gh issue comment 16 --body-file smoke-comment.md
