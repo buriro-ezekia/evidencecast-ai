@@ -8,6 +8,7 @@ This directory contains the final submission material for the Backblaze Generati
 - [`devpost-description.md`](devpost-description.md) — ready-to-paste Devpost project description.
 - [`providers-and-models.md`](providers-and-models.md) — complete provider/model inventory and precise Genblaze/B2 explanation.
 - [`demo-script.md`](demo-script.md) — timed script and screen plan for a sub-three-minute demonstration.
+- [`render-free-deployment.md`](render-free-deployment.md) — exact Render Free Blueprint, secret-entry and public smoke-test runbook.
 - [`public-verification-checklist.md`](public-verification-checklist.md) — automated and private-browser judge-access verification.
 
 ## Submission principle
