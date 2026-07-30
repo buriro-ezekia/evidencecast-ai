@@ -31,6 +31,8 @@ services:
     envVars:
       - key: EVIDENCECAST_FIXTURE_MODE
         value: "1"
+      - key: EVIDENCECAST_DISABLE_HEAVY_ASSEMBLY
+        value: "1"
       - key: EVIDENCECAST_API_URL
         value: https://evidencecast-api-buriro-2026.onrender.com
       - key: B2_KEY_ID
