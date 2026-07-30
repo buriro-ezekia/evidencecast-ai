@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This pathway completes the final FFmpeg delivery package while GMI Cloud remains unavailable because of insufficient credits.
+The local validation pathway completes a reviewed FFmpeg delivery package when paid provider media is unavailable. It is a functional fallback, not a substitute claim of successful provider generation.
 
 It creates:
 
@@ -15,7 +15,23 @@ It creates:
 - a 1080 × 1350 infographic; and
 - an assembly manifest containing B2 integrity verification results.
 
-The local inputs are deliberately labelled and recorded as local validation assets. They must not be described as provider-generated or as successful GMI/Genblaze outputs.
+The inputs are deliberately labelled as local validation assets. They must not be described as provider-generated or as successful GMI, NVIDIA, OpenAI or Genblaze media outputs.
+
+## Public hosted behaviour
+
+The public Render Free service sets:
+
+```text
+EVIDENCECAST_DISABLE_HEAVY_ASSEMBLY=1
+```
+
+This disables the **Generate, assemble and verify local delivery** control on the hosted Streamlit instance. Judges can still restore and inspect the approved workflow, but the small 512 MB service is protected from a repeated resource-exhaustion failure.
+
+Run the full pathway locally or on an adequately provisioned private instance with:
+
+```text
+EVIDENCECAST_DISABLE_HEAVY_ASSEMBLY=0
+```
 
 ## Install system dependencies
 
@@ -28,20 +44,21 @@ ffprobe -version
 espeak-ng --version
 ```
 
-## Update the branch
+## Update the supported branch
 
 ```bash
 git fetch origin
-git switch feat/day-05-final-media-evaluation
-git pull origin feat/day-05-final-media-evaluation
+git switch main
+git pull origin main
 pip install -r requirements.txt
 pytest -q
 ```
 
-## Start the application
+## Start the application locally
 
 ```bash
-streamlit run app.py --server.address 0.0.0.0 --server.port 8501
+EVIDENCECAST_DISABLE_HEAVY_ASSEMBLY=0 \
+streamlit run app.py --server.address=0.0.0.0 --server.port=8501
 ```
 
 Open **Local validation delivery** in the Streamlit sidebar.
@@ -76,8 +93,6 @@ Assembly manifest
 ```
 
 ## Disclosure recorded in the manifest
-
-The assembly manifest includes:
 
 ```json
 {
@@ -115,21 +130,22 @@ Built from approved evidence; not provider-generated
 └── assembly-manifest.json
 ```
 
-The exact locally generated filenames may include the scene numbering shown above. Every stored input and output carries SHA-256 metadata and is checked against the remote B2 object size before the manifest can report `completed`.
+Every stored input and output carries SHA-256 metadata and is checked against the remote B2 object size before the manifest can report `completed`.
 
-## Expected success result
+## Verified example
 
 ```text
+Delivery ID: DEL-LOCAL-20260729T082428Z-aaa74869
 Status: completed
 Provider-generated: False
 Input origin: local Pillow images and eSpeak narration
 ```
 
-The page then displays the completed video, scene-image previews, infographic, local narration previews and download controls for the MP4, SRT, VTT, thumbnail and infographic.
+The verified assembly manifest is stored under the corresponding B2 delivery root and retains the source SHA-256, storyboard ID, narration ID, input records, output records and B2 integrity checks.
 
-## Acceptance evidence to record
+## Acceptance evidence to retain
 
-Capture:
+Record:
 
 - delivery ID;
 - assembly-manifest B2 URI;
@@ -138,4 +154,4 @@ Capture:
 - subtitle B2 URIs;
 - thumbnail and infographic B2 URIs;
 - confirmation that every B2 verification is `true`; and
-- a clear note that the six inputs were local validation assets rather than GMI-generated assets.
+- a clear note that the six inputs were local validation assets rather than provider-generated assets.

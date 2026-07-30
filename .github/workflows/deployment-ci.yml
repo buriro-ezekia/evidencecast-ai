@@ -2,6 +2,12 @@
 name: Deployment CI
 
 on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
   workflow_dispatch:
 
 concurrency:
@@ -24,6 +30,11 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
+
+      - name: Install system media tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg espeak-ng
 
       - name: Install dependencies
         run: |
