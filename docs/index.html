@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="EvidenceCast AI turns approved research evidence into traceable storyboards, narration, infographics and short videos using Genblaze and Backblaze B2.">
+  <meta name="theme-color" content="#0b1020">
+  <title>EvidenceCast AI — Traceable research-to-media workflows</title>
+  <link rel="stylesheet" href="./site.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="site-header">
+    <div class="shell nav-wrap">
+      <a class="brand" href="#top" aria-label="EvidenceCast AI home">
+        <span class="brand-mark">E</span>
+        <span>EvidenceCast AI</span>
+      </a>
+      <nav aria-label="Primary navigation">
+        <a href="#workflow">Workflow</a>
+        <a href="#technology">Technology</a>
+        <a href="#transparency">Transparency</a>
+        <a class="nav-cta" href="https://evidencecast-web-buriro-2026.onrender.com/">Launch app</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main">
+    <section id="top" class="hero">
+      <div class="shell hero-grid">
+        <div>
+          <p class="eyebrow">Backblaze Generative AI Media Hackathon</p>
+          <h1>Turn approved evidence into media people can trust.</h1>
+          <p class="hero-copy">
+            EvidenceCast AI is a human-reviewed research-to-media workflow that transforms approved findings into traceable storyboards, narration, infographics and short videos. Genblaze orchestrates media generation, while Backblaze B2 stores the source records, reviews, provider outcomes, media assets and provenance.
+          </p>
+          <div class="actions">
+            <a class="button primary" href="https://evidencecast-web-buriro-2026.onrender.com/">Try EvidenceCast AI</a>
+            <a class="button secondary" href="https://www.youtube.com/watch?v=tCU5KRakVxE">Watch the demo</a>
+          </div>
+          <p class="cold-start">The Render Free application may take about one minute to wake after inactivity.</p>
+        </div>
+
+        <aside class="hero-card" aria-label="Project summary">
+          <div class="status-row"><span class="status-dot"></span> Public judge deployment</div>
+          <dl>
+            <div><dt>Evidence cards</dt><dd>Human approved</dd></div>
+            <div><dt>Storyboard</dt><dd>Approved-only</dd></div>
+            <div><dt>Storage</dt><dd>Backblaze B2</dd></div>
+            <div><dt>Orchestration</dt><dd>Genblaze</dd></div>
+            <div><dt>Integrity</dt><dd>SHA-256 + manifests</dd></div>
+          </dl>
+        </aside>
+      </div>
+    </section>
+
+    <section class="proof-strip" aria-label="Project highlights">
+      <div class="shell proof-grid">
+        <div><strong>3</strong><span>synthetic judge fixtures</span></div>
+        <div><strong>3</strong><span>approved scenes per story</span></div>
+        <div><strong>B2</strong><span>durable workflow ledger</span></div>
+        <div><strong>100%</strong><span>provider-status disclosure</span></div>
+      </div>
+    </section>
+
+    <section id="workflow" class="section">
+      <div class="shell">
+        <p class="eyebrow">How it works</p>
+        <h2>A review gate before every media decision</h2>
+        <p class="section-intro">EvidenceCast AI keeps the source claim, reviewer decision and resulting media connected throughout the workflow.</p>
+        <div class="steps">
+          <article><span>01</span><h3>Ingest evidence</h3><p>Accept PDF, Markdown or text and create a SHA-256-addressed source record.</p></article>
+          <article><span>02</span><h3>Review claims</h3><p>Approve, edit or reject evidence cards while source excerpts remain locked.</p></article>
+          <article><span>03</span><h3>Plan the story</h3><p>Build a three-scene storyboard and narration from approved cards only.</p></article>
+          <article><span>04</span><h3>Generate and store</h3><p>Run scene-level Genblaze pipelines and retain requests, progress, outputs and failures in B2.</p></article>
+          <article><span>05</span><h3>Verify and deliver</h3><p>Create subtitles and delivery assets with hashes, manifests and explicit lineage.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section id="technology" class="section section-alt">
+      <div class="shell two-column">
+        <div>
+          <p class="eyebrow">Production-minded architecture</p>
+          <h2>Prompt-to-pipeline-to-durable-storage</h2>
+          <p>Each image scene and narration segment is isolated as its own Genblaze pipeline. This supports bounded retries, partial-failure preservation and scene-level regeneration without rebuilding successful assets.</p>
+          <ul class="check-list">
+            <li>Streamlit judge-facing workflow</li>
+            <li>FastAPI service and fixture endpoints</li>
+            <li>Backblaze B2 through S3-compatible storage</li>
+            <li>Docker and Render deployment</li>
+            <li>FFmpeg subtitles and final-media composition</li>
+          </ul>
+        </div>
+        <div class="architecture" role="img" aria-label="Architecture diagram showing source evidence, human review, Genblaze pipelines and Backblaze B2">
+          <div>Trusted source</div><i>↓</i>
+          <div>Human-reviewed evidence</div><i>↓</i>
+          <div>Storyboard + narration</div><i>↓</i>
+          <div class="accent">Genblaze scene pipelines</div><i>↓</i>
+          <div class="accent">Backblaze B2 ledger</div>
+        </div>
+      </div>
+    </section>
+
+    <section id="transparency" class="section">
+      <div class="shell two-column">
+        <div class="transparency-card">
+          <p class="label">Accuracy principle</p>
+          <code>provider_generated: false</code>
+          <p>The completed reviewed fallback delivery uses Pillow and eSpeak and is never presented as a successful provider-generated asset.</p>
+        </div>
+        <div>
+          <p class="eyebrow">Transparent by design</p>
+          <h2>Failures remain part of the record.</h2>
+          <p>Provider requests, progress, model availability, credit failures, timeouts and deterministic fallback status are stored rather than hidden. A provider result is accepted only when the asset, SHA-256 value, B2 provenance manifest and verification checks are complete.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section links-section">
+      <div class="shell">
+        <p class="eyebrow">Explore the project</p>
+        <h2>Everything judges need, in one place</h2>
+        <div class="link-cards">
+          <a href="https://evidencecast-web-buriro-2026.onrender.com/"><strong>Live application</strong><span>Open the Streamlit judge workflow →</span></a>
+          <a href="https://evidencecast-api-buriro-2026.onrender.com/"><strong>Public API</strong><span>Inspect the FastAPI service →</span></a>
+          <a href="https://github.com/buriro-ezekia/evidencecast-ai"><strong>Source code</strong><span>Review setup, tests and architecture →</span></a>
+          <a href="https://www.youtube.com/watch?v=tCU5KRakVxE"><strong>Demo video</strong><span>Watch the under-three-minute walkthrough →</span></a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="shell footer-wrap">
+      <p><strong>EvidenceCast AI</strong> — human-reviewed, provenance-aware research communication.</p>
+      <p>Built with Python, Streamlit, FastAPI, Genblaze and Backblaze B2.</p>
+    </div>
+  </footer>
+</body>
+</html>
