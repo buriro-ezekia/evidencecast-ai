@@ -2,25 +2,39 @@
 
 ## Delivered services
 
-EvidenceCast is deployed as two independent web services:
+EvidenceCast is deployed as two independent public web services:
 
-| Service | Technology | Default local port | Health endpoint |
+| Service | Technology | Local port | Health endpoint |
 |---|---|---:|---|
-| `evidencecast-web` | Streamlit | 8501 | `/_stcore/health` |
-| `evidencecast-api` | FastAPI/Uvicorn | 8000 | `/healthz` |
+| `evidencecast-web-buriro-2026` | Streamlit | 8501 | `/_stcore/health` |
+| `evidencecast-api-buriro-2026` | FastAPI/Uvicorn | 8000 | `/healthz` |
 
-The repository contains:
+The repository contains `Dockerfile.web`, `Dockerfile.api`, `docker-compose.yml` and `render.yaml`.
 
-- `Dockerfile.web`;
-- `Dockerfile.api`;
-- `docker-compose.yml`; and
-- `render.yaml`.
+## Supported branch
+
+The supported deployment and submission branch is:
+
+```text
+main
+```
+
+Clone and update it with:
+
+```bash
+git clone https://github.com/buriro-ezekia/evidencecast-ai.git
+cd evidencecast-ai
+git switch main
+git pull origin main
+```
+
+Historical feature branches remain available only as development records.
 
 ## Required secrets
 
-For fixture exploration, no provider secret is required. The frontend can also use bundled fixtures when the backend is temporarily unavailable.
+Fixture exploration requires no provider secret. The frontend can also use bundled fixtures while the backend is temporarily unavailable.
 
-For B2-backed workflows, configure:
+For B2-backed restoration and delivery access, configure:
 
 ```text
 B2_KEY_ID
@@ -30,16 +44,15 @@ B2_REGION
 B2_ENDPOINT
 ```
 
-For private local live-provider validation, configure only the provider keys you actually use:
+For private live-provider validation, configure only the provider keys that are actually used:
 
 ```text
 GMI_API_KEY
 OPENAI_API_KEY
 NVIDIA_API_KEY
-GOOGLE_API_KEY
 ```
 
-Do not place media-provider keys in the public judge deployment. This prevents public users from consuming provider credits. Never commit populated `.env` files or paste keys into issue comments, screenshots or fixture JSON.
+Do not place media-provider keys in the public judge deployment. Never commit a populated `.env` file or expose keys in screenshots, logs or issue comments.
 
 ## Local Python setup
 
@@ -50,7 +63,7 @@ python -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-Install local media dependencies on Ubuntu or Codespaces:
+On Ubuntu or Codespaces:
 
 ```bash
 sudo apt-get update
@@ -69,14 +82,13 @@ Start the frontend in a second terminal:
 ```bash
 EVIDENCECAST_API_URL=http://localhost:8000 \
 EVIDENCECAST_FIXTURE_MODE=1 \
+EVIDENCECAST_DISABLE_HEAVY_ASSEMBLY=0 \
 streamlit run app.py --server.address=0.0.0.0 --server.port=8501
 ```
 
 ## Docker Compose
 
-Create a local `.env` only when B2 or provider-backed features are required. Fixture mode works without it.
-
-Build and start both services, then wait until their Docker health checks pass:
+Build and start both services, then wait until their health checks pass:
 
 ```bash
 docker compose build --no-cache
@@ -100,7 +112,7 @@ curl --fail http://localhost:8000/readyz
 curl --fail http://localhost:8501/_stcore/health
 ```
 
-Run the retry-aware smoke test:
+Run the smoke test:
 
 ```bash
 python scripts/smoke_test_deployment.py \
@@ -109,83 +121,59 @@ python scripts/smoke_test_deployment.py \
   --startup-timeout 120
 ```
 
-When the frontend does not become healthy, inspect its state and logs before restarting:
+## Render Free deployment
 
-```bash
-docker compose ps -a
-docker compose logs web --tail=200
-docker compose restart web
-docker compose up -d --wait --wait-timeout 180
-```
-
-The Streamlit image sets `PYTHONPATH=/app:/app/src`, launches Streamlit through `python -m streamlit`, and has an extended startup health window. This avoids import-path failures and prevents an immediate smoke test from misclassifying a service that is still starting.
-
-Stop the stack:
-
-```bash
-docker compose down
-```
-
-## Render Free Blueprint deployment
-
-The root `render.yaml` creates two public Docker web services in the Frankfurt region:
-
-- `evidencecast-api-buriro-2026`;
-- `evidencecast-web-buriro-2026`.
-
-Render Free web services cannot receive private-network traffic. The Streamlit service therefore calls the FastAPI service through this public HTTPS URL:
+The root `render.yaml` deploys both services from `main` in the Frankfurt region:
 
 ```text
+https://evidencecast-web-buriro-2026.onrender.com
 https://evidencecast-api-buriro-2026.onrender.com
 ```
 
+Render Free web services cannot receive private-network traffic. The Streamlit service therefore calls the FastAPI service through its public HTTPS address.
+
 Backblaze B2 remains the durable system of record because Render Free filesystems are ephemeral.
 
-Deployment steps:
+### Public safety mode
 
-1. Use branch `feat/day-08-submission-package`.
-2. In Render, create a new Blueprint.
-3. Connect the private `buriro-ezekia/evidencecast-ai` repository through the Render GitHub App.
-4. Select the root `render.yaml`.
-5. Enter only `B2_KEY_ID`, `B2_APP_KEY` and `B2_BUCKET` for the Streamlit service.
-6. Do not add GMI, OpenAI, NVIDIA or Google keys to the public deployment.
-7. Create the Blueprint and wait for both health checks to pass.
-8. Open `https://evidencecast-web-buriro-2026.onrender.com`.
-9. Open **Fixture mode for judges** and load each of the three samples.
+The public Streamlit service sets:
 
-The first request after 15 minutes of inactivity can take about one minute while a Free service wakes.
+```text
+EVIDENCECAST_DISABLE_HEAVY_ASSEMBLY=1
+```
 
-For the full owner runbook, see [`submission/render-free-deployment.md`](submission/render-free-deployment.md).
+At container startup, `scripts/configure_public_ui.py` applies an idempotent runtime guard to the two media-assembly pages. Judges can still:
+
+- load the synthetic fixtures;
+- restore approved storyboard and narration records from B2;
+- inspect evidence links, hashes and URIs; and
+- run lightweight consistency evaluation.
+
+New Pillow, eSpeak and FFmpeg assembly controls are disabled on the small hosted instance. This prevents a repeated resource-exhaustion failure while retaining the complete local workflow in the repository.
+
+Use `EVIDENCECAST_DISABLE_HEAVY_ASSEMBLY=0` only on a local or adequately provisioned private instance.
+
+### Blueprint steps
+
+1. Connect `buriro-ezekia/evidencecast-ai` to Render.
+2. Select the root `render.yaml` from `main`.
+3. Enter only `B2_KEY_ID`, `B2_APP_KEY` and `B2_BUCKET` for the Streamlit service.
+4. Do not add GMI, OpenAI or NVIDIA keys to the public deployment.
+5. Synchronise the Blueprint and wait for both health checks to pass.
+6. Confirm both services show branch `main`.
+
+The first request after inactivity may take around one minute while a Free service wakes.
 
 ## Post-deployment smoke test
 
-Set the deployed URLs. Replace them only when Render assigns different subdomains:
-
-```bash
-export EVIDENCECAST_API_PUBLIC_URL="https://evidencecast-api-buriro-2026.onrender.com"
-export EVIDENCECAST_WEB_PUBLIC_URL="https://evidencecast-web-buriro-2026.onrender.com"
-```
-
-Run:
-
 ```bash
 python scripts/smoke_test_deployment.py \
-  --api-url "$EVIDENCECAST_API_PUBLIC_URL" \
-  --web-url "$EVIDENCECAST_WEB_PUBLIC_URL" \
+  --api-url https://evidencecast-api-buriro-2026.onrender.com \
+  --web-url https://evidencecast-web-buriro-2026.onrender.com \
   --startup-timeout 240
 ```
 
-The expected readiness response reports:
-
-```json
-{
-  "status": "ready",
-  "fixture_count": 3,
-  "fixture_mode": true
-}
-```
-
-Expected smoke-test checks:
+Expected checks:
 
 ```text
 PASS fixture: biolarviciding-community-acceptance
@@ -197,8 +185,8 @@ PASS backend readiness
 PASS all three sample reports
 ```
 
-Configuration booleans may differ according to the deployed secrets. Secret values are never returned.
+Configuration booleans may vary according to deployed secrets. Secret values must never be returned.
 
 ## Rollback
 
-Render retains the two most recent previous deploys for Free web services. Roll back the frontend and backend together when an interface contract changes. Fixture API version `v1` is intentionally stable for the hackathon submission.
+Render retains recent deploys for rollback. Roll back the frontend and backend together when an interface contract changes. Fixture API version `v1` is intentionally stable for the hackathon submission.
